@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Song Entry/Delete by ID</title>
+    <style>
+    #main-content {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    #song-entry-section {
+        flex: 5;
+        background-color: lightskyblue;
+        padding: 2px;
+    }
+
+    #delete-section {
+        flex: 1;
+        padding: 5px;
+        padding-top: 0px;
+        margin-left: 0px;
+        
+        height: fit-content;
+        background-color: lightsalmon;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+    }
+
+    h2 {
+        color: #333;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-group label {
+        width: 180px;
+        margin-right: 10px;
+    }
+
+    #delete-section .form-group label {
+        margin-right: 5px; 
+    }
+
+    input[type="text"], input[type="number"], textarea {
+        width: calc(100% - 10px);
+        padding: 5px;
+        margin-right: 5px;
+        box-sizing: border-box;
+    }
+
+    #song textarea {
+        height: 500px;
+        resize: vertical;
+    }
+
+    #submit, #delete, #pl_delete {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-left: 160px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        margin-right: 5px;
+    }
+    #delete-section .form-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px; 
+    }
+
+    #delete-section .form-group label {
+        flex: 0 1 auto; 
+        margin-right: 5px; 
+        width: auto; 
+    }
+
+    #delete-section .form-group input[type="text"] {
+        flex: 1; 
+        margin-right: 5px; 
+    }
+
+    .nav-bar {
+        background-color: #333;
+        padding: 10px;
+        margin-bottom: 20px;
+    }
+
+    .nav-bar a {
+        color: white;
+        margin-right: 20px;
+        text-decoration: none;
+    }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <a href="/songmanager/">Playlist Display</a>
+        <a href="/songmanager/song-entry.html">Song Entry</a>
+        <a href="/songmanager/playlist-manager.html">Playlist Manager</a>
+    </div>
+
+    <div id="main-content">
+        <div id="song-entry-section">
+            <h2>New Song Entry</h2>
+            <div class="form-group">
+                <label for="songName">Song Name:</label>
+                <input type="text" id="songName">
+            </div>
+            <div class="form-group">
+                <label for="performingArtist">Performing Artist:</label>
+                <input type="text" id="performingArtist">
+            </div>
+            <div class="form-group">
+                <label for="tuning">Tuning:</label>
+                <input type="text" id="tuning">
+            </div>
+            <div class="form-group">
+                <label for="capoFret">Capo fret (use 0 for no capo):</label>
+                <input type="number" id="capoFret">
+            </div>
+            <div class="form-group">
+                <label for="relativeKey">Relative Key:</label>
+                <input type="text" id="relativeKey">
+            </div>
+            <div class="form-group">
+                <label for="actualKey">Actual Key:</label>
+                <input type="text" id="actualKey">
+            </div>
+            <div class="form-group" id="song">
+                <label for="songData">Song Data:</label>
+                <textarea id="songData"></textarea>
+            </div>
+            <div class="form-group-button">
+                <button id="submit">Submit</button>
+            </div>
+            <div>
+                <p id="added"></p>
+            </div>
+        </div>
+        <div id="delete-section">
+            <h2>Delete Single Song</h2>
+            <div class="form-group">
+                <label for="songName">Song ID:</label>
+                <input type="text" id="id">
+            </div>
+            <div class="form-group-button">
+                <button id="delete">Delete</button>
+            </div>
+            <div>
+                <p id="deleted"></p>
+            </div>
+            <hr>
+            <h2>Delete Playlist</h2>
+            <div class="form-group">
+                <label for="playlistID">Playlist ID:</label>
+                <input type="text" id="pl_id">
+            </div>
+            <div class="form-group-button">
+                <button id="pl_delete">Delete</button>
+            </div>
+            <div>
+                <p id="pl_deleted"></p>
+            </div>
+        </div>
+    </div>
+    <script>
+        // Updated API URLs
+        let url = '/api/songs/';
+
+        async function deleteSong(id) {
+            let idUrl = url + id;
+            let resp = await fetch(idUrl, {
+                method: 'Delete',
+                headers: {
+                    "Content-type": "application/json"
+                }
+            });
+            let text = document.getElementById('deleted');
+            text.textContent = 'Song Deleted';
+            document.getElementById('id').value = '';
+        }
+
+        async function deletePlaylist(id) {
+            let pl_url = `/api/playlists/${id}`;
+            let resp = await fetch(pl_url, {
+                method: 'Delete',
+                headers: {
+                    "Content-type": "application/json"
+                }
+            });
+            let pl_text = document.getElementById('pl_deleted');
+            pl_text.textContent = 'Playlist Deleted';
+            document.getElementById('pl_id').value = '';
+        }
+
+        async function addSong(song) {
+            let resp = await fetch(url, {
+                method: 'Post',
+                headers: {
+                    "Content-type": "application/json"
+                },
+                body: JSON.stringify(song)
+            });
+
+            let added_song = await resp.json();
+            
+            let added = `${added_song.songName} has been added with ID: ${added_song.id}`;
+            document.getElementById('added').innerHTML = added;
+
+            document.getElementById('songName').value = '';
+            document.getElementById('performingArtist').value = '';
+            document.getElementById('tuning').value = '';
+            document.getElementById('capoFret').value = '';
+            document.getElementById('relativeKey').value = '';
+            document.getElementById('actualKey').value = '';
+            document.getElementById('songData').value = '';
+        }
+
+        let submit = document.getElementById('submit');
+
+        submit.addEventListener('click', () => {
+            let song = {};
+            song.songName = document.getElementById('songName').value;
+            song.performingArtist = document.getElementById('performingArtist').value;
+            song.tuning = document.getElementById('tuning').value;
+            song.capoFret = document.getElementById('capoFret').value;
+            song.relativeKey = document.getElementById('relativeKey').value;
+            song.actualKey = document.getElementById('actualKey').value;
+            song.songData = document.getElementById('songData').value;
+            addSong(song);
+        });
+
+        let delButton = document.getElementById('delete');
+        delButton.addEventListener('click', () => {
+            let id = document.getElementById('id').value;
+            deleteSong(id);
+        });  
+
+        let plDelButton = document.getElementById('pl_delete');
+        plDelButton.addEventListener('click', () => {
+            let pl_id = document.getElementById('pl_id').value;
+            deletePlaylist(pl_id);
+        });  
+    </script>
+</body>
+</html>

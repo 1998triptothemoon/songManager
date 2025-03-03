@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Playlist Display Page</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      .nav-bar {
+        background-color: #333;
+        padding: 10px;
+        margin-bottom: 20px;
+      }
+
+      .nav-bar a {
+        color: white;
+        margin-right: 20px;
+        text-decoration: none;
+      }
+
+      .content-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        flex-grow: 1;
+      }
+
+      #container {
+          display: flex;
+          flex-direction: row; 
+          justify-content: space-between; 
+          width: 100%; 
+          max-width: 1200px; 
+          padding: 20px; 
+          box-sizing: border-box; 
+      }
+
+      #playlistElements {
+          order: 2; 
+          width: 250px;
+          display: flex;
+          flex-direction: column;
+          overflow: auto;
+      }
+
+      #songInfo {
+          flex-grow: 1; 
+          margin-right: 20px; 
+      }
+
+      ul {
+          list-style-type: none;
+          padding-left: 0;
+      }
+
+      .nav, #songInfo, ul {
+          border: 1px solid #ccc; 
+          padding: 10px;
+      }
+      #forwardButton, #backButton, #topButton {
+          background-color: lightblue; 
+          color: black; 
+          margin-top: 10px; 
+      }
+      #loadButton {
+          margin-bottom: 10px; 
+          margin-top: 5px;
+      }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <a href="/songmanager/">Playlist Display</a>
+        <a href="/songmanager/song-entry.html">Song Entry</a>
+        <a href="/songmanager/playlist-manager.html">Playlist Manager</a>
+    </div>
+    
+    <div class="content-wrapper">
+        <!-- Content will be inserted here by JavaScript -->
+    </div>
+
+    <script>
+        let container = document.createElement('div');
+        container.setAttribute('id', 'container');
+        let playlistElements = document.createElement('div');
+        let songList = document.createElement('ul');
+        playlistElements.setAttribute('id', 'playlistElements');
+        let counter = 0;
+        let playlistArray = [];
+
+        function initPlaylistSelector(selectedPlaylistIndex = 0) {
+            let playlistSelector = document.getElementById('playlistSelector');
+            if (!playlistSelector) {
+                playlistSelector = document.createElement('select');
+                playlistSelector.setAttribute('id', 'playlistSelector');
+                playlistElements.prepend(playlistSelector);
+            }
+
+            playlistSelector.innerHTML = '';
+            playlistArray.forEach((playlist, index) => {
+                let option = document.createElement('option');
+                option.value = index;
+                option.innerText = playlist.name;
+                option.selected = index === selectedPlaylistIndex;
+                playlistSelector.appendChild(option);
+            });
+
+            return playlistSelector;
+        }
+
+        function initLoadButton(playlistSelector) {
+            let loadButton = document.getElementById('loadButton');
+
+            if (!loadButton) {
+                loadButton = document.createElement('button');
+                loadButton.setAttribute('id', 'loadButton');
+                loadButton.innerText = 'Load Selected Playlist';
+                playlistElements.appendChild(loadButton);
+
+                loadButton.addEventListener('click', function() {
+                    let selectedPlaylistIndex = parseInt(playlistSelector.value, 10);
+                    if (!isNaN(selectedPlaylistIndex)) {
+                        counter = 0;
+                        displayPlaylist(playlistArray[selectedPlaylistIndex], selectedPlaylistIndex);
+                    }
+                });
+            }
+        }
+
+        function initNavigationButtons(playlist) {
+            let existingButtons = ['forwardButton', 'backButton', 'topButton'];
+
+            existingButtons.forEach(buttonId => {
+                let existingButton = document.getElementById(buttonId);
+                if (existingButton) {
+                    playlistElements.removeChild(existingButton);
+                }
+            });
+
+            let forward = document.createElement('button');
+            let back = document.createElement('button');
+            let top = document.createElement('button');
+            forward.setAttribute('id', 'forwardButton');
+            back.setAttribute('id', 'backButton');
+            top.setAttribute('id', 'topButton');
+            forward.className = 'nav';
+            back.className = 'nav';
+            top.className = 'nav';
+            forward.innerText = '>';
+            back.innerText = '<';
+            top.innerText = '<<';
+            
+            playlistElements.appendChild(top);
+            playlistElements.appendChild(back);
+            playlistElements.appendChild(forward);
+
+            forward.addEventListener('click', function () {
+                if (counter < playlist.songs.length - 1) {
+                    counter++;
+                    displaySong(playlist.songs[counter]);
+                    updateSongDisplay(playlist);
+                }
+            });
+
+            back.addEventListener('click', function () {
+                if (counter > 0) {
+                    counter--;
+                    displaySong(playlist.songs[counter]);
+                    updateSongDisplay(playlist);
+                }
+            });
+
+            top.addEventListener('click', function () {
+                if (counter > 0) {
+                    counter = 0;
+                    displaySong(playlist.songs[counter]);
+                    updateSongDisplay(playlist);
+                }
+            });
+        }
+
+        function displaySong(song) {
+            let songInfo = document.getElementById('songInfo');
+            if (!songInfo) {
+                songInfo = document.createElement('div');
+                songInfo.setAttribute('id', 'songInfo');
+                
+                container.insertBefore(songInfo, playlistElements);
+            } else {
+                songInfo.innerHTML = '';
+            }
+
+            let name = document.createElement('h2');
+            name.setAttribute('id', 'name');
+            name.innerText = song.songName;
+            songInfo.appendChild(name);
+
+            let artist = document.createElement('h3');
+            artist.setAttribute('id', 'artist');
+            artist.innerText = song.performingArtist;
+            songInfo.appendChild(artist);
+
+            let key_info = document.createElement('div');
+            key_info.setAttribute('id', 'key_info');
+            
+            if(song.capoFret < 1) {
+                if(song.actualKey != song.relativeKey) {
+                    key_info.innerHTML =    `Tuning: ${song.tuning}<br>
+                                    Relative Key: ${song.relativeKey}<br>
+                                    Actual Key: ${song.actualKey}`;  
+                } else {
+                    key_info.innerHTML =    `Tuning: ${song.tuning}<br>
+                                             Key: ${song.actualKey}`;
+                }
+            } else {
+                key_info.innerHTML =    `Tuning: ${song.tuning}<br>
+                                    Capo: ${song.capoFret}<br>
+                                    Relative Key: ${song.relativeKey}<br>
+                                    Actual Key: ${song.actualKey}`;   
+            }
+            
+            songInfo.appendChild(key_info);
+
+            let song_data = document.createElement('pre');
+            song_data.setAttribute('id', 'song_data');
+            song_data.innerText = song.songData;
+            songInfo.appendChild(song_data);
+        }
+
+        function displayPlaylist(playlist, playlistIndex = 0) {
+            if (!playlistElements) {
+                playlistElements = document.createElement('div');
+                playlistElements.setAttribute('id', 'playlistElements');
+                container.appendChild(playlistElements);
+            }
+
+            const playlistSelector = initPlaylistSelector(playlistIndex);
+            initLoadButton(playlistSelector);
+            initNavigationButtons(playlist);
+
+            songList.innerHTML = "";
+            
+            playlist.songs.forEach((song, index) => {
+                let listItem = document.createElement('li');
+                listItem.innerText = song.songName;
+                listItem.id = `song-${index}`;
+
+                songList.appendChild(listItem);
+            });
+            playlistElements.appendChild(songList);
+
+            container.appendChild(playlistElements);
+            if (playlist.songs && playlist.songs.length > 0) {
+                displaySong(playlist.songs[counter]);
+            }
+            document.querySelector('.content-wrapper').appendChild(container);
+            updateSongDisplay(playlist);
+        }
+
+        function updateSongDisplay(playlist) {
+            playlist.songs.forEach((_, index) => {
+                let listItem = document.getElementById(`song-${index}`);
+                if (listItem !== null) { 
+                    if (index === counter) {
+                        listItem.style.backgroundColor = 'yellow';
+                    } else {
+                        listItem.style.backgroundColor = '';
+                    }
+                }
+            });
+        }
+
+        async function getPlaylists() {
+            try {
+                let response = await fetch('/api/playlists/');
+                let playlists = await response.json();
+                return playlists;
+            } catch (error) {
+                console.error('Error fetching playlists:', error);
+                return [];
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            playlistArray = await getPlaylists();
+            if (playlistArray.length > 0) {
+                displayPlaylist(playlistArray[0]);
+            } else {
+                container.innerHTML = '<p>No playlists available. Please create a playlist first.</p>';
+                document.querySelector('.content-wrapper').appendChild(container);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Playlist Manager</title>
+    <link rel="stylesheet" href="css/playlistManagerStyles.css">
+    <style>
+        /* Backup styles in case CSS file isn't found */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+        .song-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            margin-bottom: 5px;
+            background-color: #f0f0f0;
+        }
+        hr {
+            margin: 20px 0;
+        }
+        .nav-bar {
+            background-color: #333;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-bar a {
+            color: white;
+            margin-right: 20px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-bar">
+        <a href="/songmanager/">Playlist Display</a>
+        <a href="/songmanager/song-entry.html">Song Entry</a>
+        <a href="/songmanager/playlist-manager.html">Playlist Manager</a>
+    </div>
+
+    <h2>Playlist Manager</h2>
+
+    <div class="new">
+        <button id="new">Start New Playlist</button>
+    </div>
+    <div class="edit">
+        <button id="edit">Edit Existing Playlist</button>
+    </div>
+    <div class="delete">
+        <button id="delete">Delete Existing Playlist</button>
+    </div>
+    <hr>
+    <div class="temp" id="temp"></div>
+
+    <script src="js/playlistmanager_async.js"></script>
+    <script>
+        let workingPlaylist = [];
+        let start = document.getElementById('new');
+        let edit = document.getElementById('edit');
+        let deleteButton = document.getElementById('delete');
+        let temp = document.querySelector('.temp');
+
+        function displayPlaylist() {
+            let playlistText = document.getElementById('playlistText');
+            if(!playlistText) {
+                playlistText = document.createElement('p');
+                playlistText.id = 'playlistText';
+                playlistText.textContent = "Songs Currently in Playlist:";
+                temp.appendChild(playlistText);
+            } else {
+                playlistText.textContent = "Songs Currently in Playlist:";
+            }
+            
+            let existingSongsContainer = document.getElementById('songsContainer');
+            if (existingSongsContainer) {
+                existingSongsContainer.remove();
+            }
+
+            let songsContainer = document.createElement('div');
+            songsContainer.id = 'songsContainer';
+            temp.appendChild(songsContainer);
+
+            workingPlaylist.forEach((song, index) => {
+                let songItem = document.createElement('div');
+                songItem.className = 'song-item';
+
+                let songName = document.createElement('p');
+                songName.textContent = song.songName;
+                songName.className = 'song-name';
+
+                let deleteButton = document.createElement('button');
+                deleteButton.textContent = 'Delete';
+                deleteButton.className = 'delete-song-btn';
+                deleteButton.dataset.songIndex = index;
+                
+                songItem.appendChild(songName);
+                songItem.appendChild(deleteButton);
+                songsContainer.appendChild(songItem);
+            });
+
+            songsContainer.addEventListener('click', function(e) {
+                if (e.target && e.target.nodeName == 'BUTTON') {
+                    let songIndex = e.target.dataset.songIndex;
+                    workingPlaylist.splice(songIndex, 1);
+                    songsContainer.innerHTML = "";
+                    displayPlaylist();
+                }
+            });
+        }
+
+        start.addEventListener('click', () => {
+            initNewPlaylist();
+        });
+
+        edit.addEventListener('click', async() => {
+            temp.innerHTML= "";
+            
+            let playlistArray = await getPlaylists();
+            let playlistSelector = document.createElement('select');
+            playlistSelector.id = 'playlistSelector';
+            playlistArray.forEach((playlist, index) => {
+                let option = document.createElement('option');
+                option.value = playlist.id;
+                option.textContent = playlist.name;
+                playlistSelector.appendChild(option);
+            });
+
+            let editSelectedButton = document.createElement('button');
+            editSelectedButton.textContent = 'Edit Selected Playlist';
+            editSelectedButton.id = 'edit2';
+
+            temp.appendChild(playlistSelector);
+            temp.appendChild(editSelectedButton);
+
+            let editing = document.createElement('p');
+            editing.id = 'editing';
+
+            editSelectedButton.addEventListener('click', async() => {
+                let songsListContainer = document.getElementById('addSongsContainer');
+                if (!songsListContainer) {
+                    songsListContainer = document.createElement('div');
+                    songsListContainer.id = 'addSongsContainer';
+                    songsListContainer.innerHTML = "";
+                    temp.appendChild(songsListContainer);
+                }
+                
+                editing.textContent = "";   
+                const selectedPlaylistId = playlistSelector.value;
+                const selectedPlaylistName = playlistSelector.options[playlistSelector.selectedIndex].text;
+                const selectedOptionIndex = playlistSelector.selectedIndex;
+                editing.textContent = `Editing playlist: ${selectedPlaylistName}`;
+                temp.appendChild(editing);
+
+                let save = document.createElement('button');
+                save.setAttribute('id', 'saveEdited');
+                save.textContent = "Save Playlist";
+                temp.appendChild(save);
+
+                workingPlaylist = await getSongsInPlaylist(selectedPlaylistId);
+                
+                displayPlaylist();
+                let allSongs = await getSongs();
+                
+                allSongs.forEach((song, index) => {
+                    let songItem = document.createElement('div');
+                    songItem.className = 'song-item';
+
+                    let songName = document.createElement('p');
+                    songName.textContent = song.songName;
+                    songName.className = 'song-name';
+
+                    let addButton = document.createElement('button');
+                    addButton.textContent = 'Add';
+                    addButton.className = 'add-song-btn';
+                    addButton.onclick = () => {
+                        workingPlaylist.push(song);
+                        displayPlaylist();
+                    };
+
+                    songItem.appendChild(songName);
+                    songItem.appendChild(addButton);
+                    
+                    songsListContainer.appendChild(songItem);
+                });
+
+                save.addEventListener('click', async () => {
+                    await saveEditedPlaylist(workingPlaylist, selectedPlaylistId, selectedPlaylistName);
+                    workingPlaylist = [];
+                    editing.textContent = `${selectedPlaylistName} saved!`;
+                });
+            });
+        });
+
+        deleteButton.addEventListener('click', async () => {
+            temp.innerHTML= "";
+            
+            let playlistArray = await getPlaylists();
+           
+            let playlistSelector = document.createElement('select');
+            playlistSelector.id = 'playlistSelector';
+            playlistArray.forEach((playlist, index) => {
+                let option = document.createElement('option');
+                option.value = playlist.id;
+                option.textContent = playlist.name;
+                playlistSelector.appendChild(option);
+            });
+
+            let deleteSelectedButton = document.createElement('button');
+            deleteSelectedButton.textContent = 'Delete Selected Playlist';
+            deleteSelectedButton.id = 'delete2';
+
+            temp.appendChild(playlistSelector);
+            temp.appendChild(deleteSelectedButton);
+
+            let deleted = document.createElement('p');
+            deleted.id = 'deleted';
+
+            deleteSelectedButton.addEventListener('click', async() => {
+                deleted.textContent = "";      
+                const selectedPlaylistId = playlistSelector.value;
+                const selectedPlaylistName = playlistSelector.options[playlistSelector.selectedIndex].text;
+                const selectedOptionIndex = playlistSelector.selectedIndex;
+
+                deletePlaylist(selectedPlaylistId, selectedPlaylistName);
+                await playlistSelector.remove(selectedOptionIndex);
+
+                temp.appendChild(deleted);
+            });
+        });
+    </script>
+</body>
+</html>
